@@ -1,7 +1,18 @@
 {
   "name": "zeit-log-integration",
   "version": 2,
+  "alias": ["log-integration.now.sh"],
+  "routes": [
+    {
+      "src": "/(?<icon>[^/]+).svg",
+      "dest": "/icon.js?icon=$icon"
+    }
+  ],
   "builds": [
+    {
+      "src": "*.js",
+      "use": "@now/node"
+    },
     {
       "src": "index.js",
       "use": "@now/node"
