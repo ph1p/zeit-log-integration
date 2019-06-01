@@ -10,7 +10,7 @@
   ],
   "builds": [
     {
-      "src": "*.js",
+      "src": "/routes/*.js",
       "use": "@now/node"
     },
     {
