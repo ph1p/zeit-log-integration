@@ -39,7 +39,7 @@ module.exports = {
       }
     };
   },
-  transformLogLine(text) {
+  transformLogLine(text, date) {
     let newText = text.replace(/\033\[[0-9;]*m/g, '');
 
     // structure reports
@@ -61,15 +61,22 @@ module.exports = {
         })
         .filter(k => !!k);
 
-      return htm`<Box padding="10px" marginBottom="10px" backgroundColor="#1f1f1f" borderRadius="5px">${structuredReport.map(
+      return htm`<Box padding="10px" position="relative" marginBottom="10px" backgroundColor="#1f1f1f" borderRadius="5px">
+        <Box position="absolute" right="10px" top="10px" color="#666">${date}</Box>
+      ${structuredReport.map(
         rep => htm`<Box><B>${rep.key}:</B> ${rep.value}</Box>`
       )}</Box>`;
     }
 
     newText = newText.split('\n');
-    return htm`<Box>${
-      newText.length ? newText.map(te => htm`${te}<BR />`) : text
-    }</Box>`;
+    return htm`<Box display="flex">
+      <Box marginRight="20px" color="#666"><B>${date}</B></Box>
+      <Box>${
+        newText.length ? newText.map(te => htm`${te}<BR />`) : text
+      }</Box>
+    </Box>
+
+    `;
   },
   isImage(file) {
     return;

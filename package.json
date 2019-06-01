@@ -6,6 +6,7 @@
     "dev": "now dev -p 5005"
   },
   "dependencies": {
-    "@zeit/integration-utils": "latest"
+    "@zeit/integration-utils": "latest",
+    "date-fns": "^1.30.1"
   }
 }
