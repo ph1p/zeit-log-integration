@@ -185,8 +185,7 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
             ${
               deployments.deployments
                 ? htm`
-                  <Select small name="selectedDeployment" value="selectedDeployment" action="change-deployment">
-                    <Option value="" caption="Select deployment..." />
+                  <Select small name="selectedDeployment" value=${metadata.selectedDeployment} action="change-deployment">
                     ${deployments.deployments.map(deployment => {
                       let name = deployment.url;
 
@@ -269,7 +268,7 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                   <Box display="grid" gridGap="10px">
                     ${builds.map(
                       build => htm`<Box display="grid" gridGap="10px">
-                      ID: ${build.id}
+                      <B>ID:</B> ${build.id}
                       ${build.output.map(out => {
                         const icon = getIconByFile(
                           out.type === 'lambda' ? '.lambda' : out.path,
