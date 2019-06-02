@@ -48,6 +48,7 @@ module.exports = {
   },
   transformLogLine(text, date) {
     let newText = text.replace(/\033\[[0-9;]*m/g, '');
+    const trimmedText = newText.trim();
 
     // structure reports
     if (newText.includes('REPORT RequestId:')) {
@@ -78,20 +79,20 @@ module.exports = {
     const colorStartWord = (text, link = '') => {
       const colors = {
         info: '#0076FF',
-        warning: '#FF0000',
-        'WARNING:': '#FF0000',
+        warning: '#F5A623',
+        'WARNING:': '#F5A623',
         success: '#2CBE4E',
-        Done: '#2CBE4E',
+        done: '#2CBE4E',
         'MODE:': '#FF0080'
       };
       let word = '';
 
       Object.keys(colors).forEach(color => {
-        if (text.startsWith(color)) {
+        if (text.toLowerCase().trim().startsWith(color)) {
           word = color;
         }
       });
-      const rText = text.replace(word + ' ', '');
+      const rText = text.trim().replace(new RegExp(word, 'i'), '');
       const textBr = rText.split('\n');
 
       return htm`<Box display="flex">
@@ -120,6 +121,17 @@ module.exports = {
     };
 
     //asset size limit:
+
+    if (newText.startsWith('entrypoint size limit:')) {
+      console.log(newText.split('Entrypoints:')[1]);
+
+      return htm`<Box display="flex">
+        <Box marginRight="20px" color="#666">${date}</Box>
+        <Box>
+          ${newText}
+        </Box>
+      </Box>`;
+    }
 
     if (newText.match(/Creating lambda for page: \"(.*)\"/)) {
       const [text, file] = newText.match(/Creating lambda for page: \"(.*)\"/);
@@ -188,16 +200,22 @@ module.exports = {
     </Box>`;
     }
 
-    if (newText.startsWith('info')) {
+    if (trimmedText.toLowerCase().startsWith('info')) {
       return colorStartWord(newText);
     }
-    if (newText.startsWith('MODE:')) {
+    if (trimmedText.startsWith('MODE:')) {
       return colorStartWord(newText);
     }
-    if (newText.startsWith('warning') || newText.startsWith('WARNING:')) {
+    if (
+      trimmedText.toLowerCase().startsWith('warning') ||
+      trimmedText.startsWith('WARNING:')
+    ) {
       return colorStartWord(newText);
     }
-    if (newText.startsWith('success') || newText.startsWith('Done')) {
+    if (
+      trimmedText.trim().startsWith('success') ||
+      trimmedText.toLowerCase().startsWith('done')
+    ) {
       return colorStartWord(newText);
     }
 

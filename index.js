@@ -17,6 +17,15 @@ const notes = {
   }
 };
 
+const stateColors = {
+  INITIALIZING: '#EAEAEA',
+  ANALYZING: '#0076FF',
+  BUILDING: '#F8E71C',
+  DEPLOYING: '#F5A623',
+  READY: '#2CBE4E',
+  ERROR: '#FF0000'
+}
+
 const Log = ({ logs, name }) => {
   return logs
     ? Object.keys(logs).map(logName => {
@@ -182,6 +191,20 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
     }
   }
 
+  const usedPackage = use => {
+    if (!use) return '';
+
+    if (!use.includes('@now')) {
+      return htm`uses <B>${use}</B>`;
+    }
+
+    const url =
+      'https://github.com/zeit/now-builders/tree/canary/packages/' +
+      use.replace('@', '').replace('/', '-');
+
+    return htm`uses <Link href=${url}<Link target="_blank"><B>${use}</B></Link>`;
+  };
+
   return htm`
     <Page>
       <Fieldset>
@@ -231,7 +254,7 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                 <FsContent>
 
                   ${
-                    deployment.routes.length
+                    deployment.routes.filter(r => r.src && r.dest).length
                       ? htm`<Box marginBottom="10px">
                     <Box fontSize="14px" fontWeight="500" marginBottom="5px">Routes</Box>
                     ${deployment.routes.map(route =>
@@ -289,8 +312,26 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                   <Box display="grid" gridGap="10px">
                     ${builds.map(
                       build => htm`<Box display="grid" gridGap="10px">
-                      <Box>
-                        <B>ID:</B> ${build.id}
+                      <Box display="flex" justifyContent="space-between">
+                        <Box>
+                          <B>ID:</B> ${build.id}
+                          <Box color="#999" lineHeight="11px" fontSize="11px">${
+                            build.entrypoint
+                          }${usedPackage(build.use)}</Box>
+                        </Box>
+                        <Box alignSelf="center">
+                          <Box
+                            color="#999"
+                            lineHeight="11px"
+                            fontSize="11px"
+                            color="#fff"
+                            fontWeight="bold"
+                            borderRadius="5px"
+                            padding="10px 15px"
+                            backgroundColor=${stateColors[build.readyState]}>
+                            ${build.readyState}
+                          </Box>
+                        </Box>
                       </Box>
                       ${build.output.map(out => {
                         const icon = getIconByFile(
