@@ -68,22 +68,97 @@ module.exports = {
       )}</Box>`;
     }
 
+    const colorStartWord = (text, link = '') => {
+      const colors = {
+        info: '#0076FF',
+        warning: '#FF0000',
+        'WARNING:': '#FF0000',
+        success: '#2CBE4E',
+        Done: '#2CBE4E'
+      };
+      let word = '';
+
+      Object.keys(colors).forEach(color => {
+        if (text.startsWith(color)) {
+          word = color;
+        }
+      });
+
+      return htm`<Box display="flex">
+        <Box marginRight="20px" color="#666">${date}</Box>
+        <Box>
+            ${
+              word
+                ? htm`<Box color=${colors[word]} display="inline">${word}</Box>`
+                : ''
+            }
+            ${
+              link !== ''
+                ? htm`<Link target="_blank" href=${link}>
+              <Box display="inline" textDecoration="underline" color="#888888"><B>${text.replace(
+                word + ' ',
+                ''
+              )}</B></Box>
+            </Link>`
+                : htm`<Box display="inline"><B>${text.replace(
+                    word + ' ',
+                    ''
+                  )}</B></Box>`
+            }
+        </Box>
+      </Box>`;
+    };
+
+    if (newText.includes('No license field')) {
+      return colorStartWord(
+        newText,
+        'https://docs.npmjs.com/files/package.json#license'
+      );
+    }
+
+    if (newText.includes('No repository field')) {
+      return colorStartWord(
+        newText,
+        'https://docs.npmjs.com/files/package.json#repository'
+      );
+    }
+
+    if (newText.includes('No lockfile found')) {
+      return colorStartWord(
+        newText,
+        'https://yarnpkg.com/lang/en/docs/yarn-lock/'
+      );
+    }
+
+    if (newText.startsWith('normalized package.json result:')) {
+      console.log(newText);
+    }
+
+    if (newText.startsWith('info')) {
+      return colorStartWord(newText);
+    }
+    if (newText.startsWith('warning') || newText.startsWith('WARNING:')) {
+      return colorStartWord(newText);
+    }
+    if (newText.startsWith('success') || newText.startsWith('Done')) {
+      return colorStartWord(newText);
+    }
+
     newText = newText.split('\n');
     return htm`<Box display="flex">
-      <Box marginRight="20px" color="#666"><B>${date}</B></Box>
-      <Box>${
-        newText.length ? newText.map(te => htm`${te}<BR />`) : text
-      }</Box>
+      <Box marginRight="20px" color="#666">${date}</Box>
+      <Box>${newText.length ? newText.map(te => htm`${te}<BR />`) : text}</Box>
     </Box>
 
     `;
   },
   isImage(file) {
-    return;
-    file.includes('.png') ||
+    return (
+      file.includes('.png') ||
       file.includes('.jpg') ||
       file.includes('.jpeg') ||
-      file.includes('.gif');
+      file.includes('.gif')
+    );
   },
   getBackgroundImageBox,
   getIconByFile(file, width = 40, height = 40) {

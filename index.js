@@ -11,6 +11,14 @@ const {
 
 const HOST = 'http://localhost:5005';
 
+const notes = {
+  codeSplitting: {
+    message: 'Reduce JavaScript Payloads with Code Splitting',
+    link:
+      'https://developers.google.com/web/fundamentals/performance/optimizing-javascript/code-splitting/'
+  }
+};
+
 const Log = ({ logs, name }) => {
   return logs
     ? Object.keys(logs).map(logName => {
@@ -33,14 +41,14 @@ const Log = ({ logs, name }) => {
                 <FsTitle>${prefix + name}</FsTitle>
               </Box>
             </Box>
-            <Box maxHeight="400px" overflow="auto" whiteSpace="nowrap" maxWidth="958px" lineHeight="20px" backgroundColor="#000" color="#fff" padding="20px" borderRadius="5px">
+            <Box fontFamily="Menlo, Monaco, 'Lucida Console', 'Liberation Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace, serif" maxHeight="400px" overflow="auto" whiteSpace="nowrap" maxWidth="958px" lineHeight="20px" backgroundColor="#000" color="#fff" padding="20px" borderRadius="5px">
               ${logs[logName].map(log => {
                 const { info, text, date } = log.payload;
                 const { type, entrypoint, path, name } = info;
 
                 return transformLogLine(
                   text,
-                  format(parse(date), 'MM.DD.YYYY - H:m:s')
+                  format(parse(date), 'MM.DD.YYYY - H:mm:ss')
                 );
               })}
             </Box>
@@ -181,11 +189,13 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
       <Fieldset>
         <FsContent>
           <Box display="grid" gridTemplateColumns="1fr 250px" alignItems="center">
-            <ProjectSwitcher />
+            <ProjectSwitcher/>
             ${
               deployments.deployments
                 ? htm`
-                  <Select small name="selectedDeployment" value=${metadata.selectedDeployment} action="change-deployment">
+                  <Select small name="selectedDeployment" value=${
+                    metadata.selectedDeployment
+                  } action="change-deployment">
                     ${deployments.deployments.map(deployment => {
                       let name = deployment.url;
 
@@ -268,7 +278,9 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                   <Box display="grid" gridGap="10px">
                     ${builds.map(
                       build => htm`<Box display="grid" gridGap="10px">
-                      <B>ID:</B> ${build.id}
+                      <Box>
+                        <B>ID:</B> ${build.id}
+                      </Box>
                       ${build.output.map(out => {
                         const icon = getIconByFile(
                           out.type === 'lambda' ? '.lambda' : out.path,
@@ -278,21 +290,36 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                         const url =
                           'https://' + deployment.url + '/' + out.path;
                         const fileSize = prettyBytes(out.size);
+                        const fileName = out.path.replace(/^.*[\\\/]/, '');
+                        const path = out.path.replace(fileName, '');
+                        let note = null;
+
+                        if (out.size >= 1300000 && fileName.includes('.js')) {
+                          note = notes.codeSplitting;
+                        }
 
                         return htm`<Box backgroundColor="#f3f3f3" borderRadius="5px" display="grid" gridTemplateColumns="24px 1fr 70px" position="relative" padding="10px" fontSize="12px">
                             <Box alignSelf="center">${icon}</Box>
                           <Box>
-                          <Link target="_blank" href=${url}>${out.path}
-                            </Link>
+                          <Link target="_blank" href=${url}>${fileName}</Link>
+                          <Box color="#999" lineHeight="11px" fontSize="11px">${path}</Box>
                           </Box>
                           <Box textAlign="right" color="#999">${
-                            out.size ? fileSize + ' MB' : ''
+                            out.size ? fileSize : ''
                           }</Box>
                           ${getLocationList(out)}
 
                           ${
+                            note
+                              ? htm`<Box gridColumn="1/ span 3" marginTop="15px" fontWeight="bold"><Link href=${note.link} target="_blank">${
+                                  note.message
+                                }</Link></Box>`
+                              : ''
+                          }
+
+                          ${
                             isImage(out.path)
-                              ? htm`<Box marginTop="10px">${getBackgroundImageBox(
+                              ? htm`<Box marginTop="12px">${getBackgroundImageBox(
                                   'https://' + deployment.url + '/' + out.path,
                                   50,
                                   50
