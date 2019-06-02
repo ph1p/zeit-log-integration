@@ -40,7 +40,7 @@ module.exports = {
     };
   },
   transformLogLine(text, date) {
-    let newText = text.replace(/\033\[[0-9;]*m/g, '');
+    let newText = text;
 
     // structure reports
     if (newText.includes('REPORT RequestId:')) {
@@ -83,27 +83,23 @@ module.exports = {
           word = color;
         }
       });
+      const rText = text.replace(word + ' ', '');
+      const textBr = rText.split('\n');
 
       return htm`<Box display="flex">
         <Box marginRight="20px" color="#666">${date}</Box>
         <Box>
             ${
               word
-                ? htm`<Box color=${colors[word]} display="inline">${word}</Box>`
+                ? htm`<Box color=${colors[word]} display="inline"><B>${word}</B></Box>`
                 : ''
             }
             ${
               link !== ''
                 ? htm`<Link target="_blank" href=${link}>
-              <Box display="inline" textDecoration="underline" color="#888888"><B>${text.replace(
-                word + ' ',
-                ''
-              )}</B></Box>
+              <Box display="inline" textDecoration="underline" color="#888888">${textBr.length ? textBr.map(te => htm`${te}<BR />`) : rText}</Box>
             </Link>`
-                : htm`<Box display="inline"><B>${text.replace(
-                    word + ' ',
-                    ''
-                  )}</B></Box>`
+                : htm`<Box display="inline">${textBr.length ? textBr.map(te => htm`${te}<BR />`) : rText}</Box>`
             }
         </Box>
       </Box>`;
@@ -147,7 +143,7 @@ module.exports = {
     newText = newText.split('\n');
     return htm`<Box display="flex">
       <Box marginRight="20px" color="#666">${date}</Box>
-      <Box>${newText.length ? newText.map(te => htm`${te}<BR />`) : text}</Box>
+      <Box>${newText.length > 1 ? newText.map(te => htm`${te}<BR />`) : text}</Box>
     </Box>
 
     `;
