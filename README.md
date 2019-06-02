@@ -1,4 +1,8 @@
-# Log - Dashboard for Zeit
+<p align="center">
+  <img src="./assets/logo.png">
+</p>
+
+# Log - The extended Zeit-Dashboard
 
 Move faster trough all your projects and deployments.
 

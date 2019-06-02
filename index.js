@@ -9,6 +9,8 @@ const {
   getIconByFile
 } = require('./helpers');
 
+const { ROOT_URL } = process.env;
+
 const notes = {
   codeSplitting: {
     message: 'Reduce JavaScript Payloads with Code Splitting',
@@ -17,14 +19,14 @@ const notes = {
   }
 };
 
-const stateColors = {
+const stateColors = {
   INITIALIZING: '#EAEAEA',
   ANALYZING: '#0076FF',
   BUILDING: '#D9931E',
   DEPLOYING: '#F5A623',
   READY: '#2CBE4E',
   ERROR: '#FF0000'
-}
+};
 
 const Log = ({ logs, name }) => {
   return logs
@@ -207,42 +209,40 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
 
   return htm`
     <Page>
-      <Fieldset>
-        <FsContent>
-          <Box display="grid" gridTemplateColumns="1fr 250px" alignItems="center">
-            <ProjectSwitcher/>
-            ${
-              deployments.deployments
-                ? htm`
-                  <Select small name="selectedDeployment" value=${
-                    metadata.selectedDeployment
-                  } action="change-deployment">
-                    ${deployments.deployments.map(deployment => {
-                      let name = deployment.url;
 
-                      if (deployment.state === 'ERROR') {
-                        name = 'Error -> ' + name;
-                      }
+    ${
+      deployment && deployments
+        ? htm`
+        <Fieldset>
+          <FsContent>
+            <Box display="grid" gridTemplateColumns="1fr 250px" alignItems="center">
+              <ProjectSwitcher />
 
-                      return htm`<Option selected=${deployment.uid ===
-                        metadata.selectedDeployment} value=${
-                        deployment.uid
-                      } caption=${name} />`;
-                    })}
-                  </Select>`
-                : ''
-            }
-          </Box>
-        </FsContent>
-      </Fieldset>
+              <Select small name="selectedDeployment" value=${
+                metadata.selectedDeployment
+              } action="change-deployment">
+                ${deployments.deployments.map(deployment => {
+                  let name = deployment.url;
 
-      ${
-        deployment && deployments
-          ? htm`
+                  if (deployment.state === 'ERROR') {
+                    name = 'Error -> ' + name;
+                  }
+
+                  return htm`<Option selected=${deployment.uid ===
+                    metadata.selectedDeployment} value=${
+                    deployment.uid
+                  } caption=${name} />`;
+                })}
+              </Select>
+            </Box>
+          </FsContent>
+        </Fieldset>
+
+
           <Box display="flex" justifyContent="space-between" marginBottom="20px">
             <Box>
               <H2>${deployment.name} <Link target="_blank" href=${'https://' +
-              deployment.url}>${`(${deployment.url})`}</Link></H2>
+            deployment.url}>${`(${deployment.url})`}</Link></H2>
             </Box>
             <Box>
               <Button small action="refresh">Refresh</Button>
@@ -256,10 +256,15 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                   ${
                     deployment.routes.filter(r => r.src && r.dest).length
                       ? htm`<Box marginBottom="10px">
-                    <Box fontSize="14px" fontWeight="500" marginBottom="5px">Routes</Box>
+                      <FsTitle>Routes</FsTitle>
                     ${deployment.routes.map(route =>
                       route.src && route.dest
-                        ? htm`<Box>- ${route.src} -> ${route.dest}</Box>`
+                        ? htm`<Box display="grid" marginBottom="10px" gridTemplateColumns="40px 1fr 40px 1fr" lineHeight="18px" backgroundColor="#f3f3f3" borderRadius="5px" padding="10px" fontSize="12px">
+                          <Box>from</Box>
+                          <Box><B>${route.src}</B></Box>
+                          <Box textAlign="center">to</Box>
+                          <Box textAlign="right"><B>${route.dest}</B></Box>
+                        </Box>`
                         : ''
                     )}
                   </Box>`
@@ -270,7 +275,7 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                     deployment.build.env.filter(e => !e.startsWith('NOW_'))
                       .length
                       ? htm`<Box marginBottom="10px">
-                    <Box fontSize="14px" fontWeight="500" marginBottom="5px">Environment Variables (build)</Box>
+                      <FsTitle>Environment Variables (build)</FsTitle>
                     ${deployment.build.env
                       .filter(e => !e.startsWith('NOW_'))
                       .map(e => htm`<Box>- ${e}</Box>`)}
@@ -281,7 +286,7 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                   ${
                     deployment.env.filter(e => !e.startsWith('NOW_')).length
                       ? htm`<Box marginBottom="10px">
-                    <Box fontSize="14px" fontWeight="500" marginBottom="5px">Environment Variables</Box>
+                      <FsTitle>Environment Variables</FsTitle>
                     ${deployment.env
                       .filter(e => !e.startsWith('NOW_'))
                       .map(e => htm`<Box>- ${e}</Box>`)}
@@ -292,7 +297,7 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                   ${
                     deployment.alias.length > 0
                       ? htm`<Box>
-                    <Box fontSize="14px" fontWeight="500" marginBottom="5px">Alias</Box>
+                    <FsTitle>Alias</FsTitle>
                     ${deployment.alias.map(
                       e =>
                         htm`<Box>- <Link target="_blank" href=${'https://' +
@@ -392,8 +397,18 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
             name => htm`
             <${Log} name=${name} logs=${allLogs[name]} />`
           )}`
-          : ''
-      }
+        : htm`
+          <Box display="grid" alignItems="center" minHeight="900px" justifyItems="center">
+            <Box alignSelf="end">
+              <B>Please</B>
+              <ProjectSwitcher />
+            </Box>
+            <Box>
+              <Img src=${ROOT_URL + '/assets/illu.png'} />
+            </Box>
+          </Box>
+        `
+    }
 
 		</Page>
 	`;

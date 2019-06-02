@@ -4,6 +4,10 @@
   "alias": ["log-integration.now.sh"],
   "routes": [
     {
+      "src": "^/assets/(.*)$",
+      "dest": "/assets/$1"
+    },
+    {
       "src": "/(?<icon>[^/]+).svg",
       "dest": "/routes/icon.js?icon=$icon"
     }
@@ -17,6 +21,10 @@
     }
   },
   "builds": [
+    {
+      "src": "/assets/*.png",
+      "use": "@now/optipng"
+    },
     {
       "src": "/routes/*.js",
       "use": "@now/node"
