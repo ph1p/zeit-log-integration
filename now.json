@@ -11,6 +11,11 @@
   "env": {
     "ROOT_URL": "https://log-integration.now.sh"
   },
+  "build": {
+    "env": {
+      "ROOT_URL": "https://log-integration.now.sh"
+    }
+  },
   "builds": [
     {
       "src": "/routes/*.js",
