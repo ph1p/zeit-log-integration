@@ -88,7 +88,12 @@ module.exports = {
       let word = '';
 
       Object.keys(colors).forEach(color => {
-        if (text.toLowerCase().trim().startsWith(color)) {
+        if (
+          text
+            .toLowerCase()
+            .trim()
+            .startsWith(color)
+        ) {
           word = color;
         }
       });
@@ -121,6 +126,18 @@ module.exports = {
     };
 
     //asset size limit:
+
+    if (newText.startsWith('TaskID')) {
+      console.log(newText.split('TaskID')[1]);
+      const [title, text] = newText.split(' ');
+
+      return htm`<Box display="flex" padding="10px" position="relative" marginBottom="10px" backgroundColor="#1f1f1f" borderRadius="5px">
+        <Box marginRight="20px" color="#666">${date}</Box>
+        <Box>
+          <B>${title+':'}</B> ${text}
+        </Box>
+      </Box>`;
+    }
 
     if (newText.startsWith('entrypoint size limit:')) {
       console.log(newText.split('Entrypoints:')[1]);

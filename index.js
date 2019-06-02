@@ -20,7 +20,7 @@ const notes = {
 const stateColors = {
   INITIALIZING: '#EAEAEA',
   ANALYZING: '#0076FF',
-  BUILDING: '#F8E71C',
+  BUILDING: '#D9931E',
   DEPLOYING: '#F5A623',
   READY: '#2CBE4E',
   ERROR: '#FF0000'
@@ -55,7 +55,7 @@ const Log = ({ logs, name }) => {
 
                 return transformLogLine(
                   text,
-                  format(parse(date), 'MM.DD.YYYY - H:mm:ss')
+                  format(parse(date), 'MM.DD.YYYY | H:mm:ss')
                 );
               })}
             </Box>
