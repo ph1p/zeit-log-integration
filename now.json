@@ -8,6 +8,9 @@
       "dest": "/routes/icon.js?icon=$icon"
     }
   ],
+  "env": {
+    "ROOT_URL": "https://log-integration.now.sh"
+  },
   "builds": [
     {
       "src": "/routes/*.js",

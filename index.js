@@ -9,8 +9,6 @@ const {
   getIconByFile
 } = require('./helpers');
 
-const HOST = 'http://localhost:5005';
-
 const notes = {
   codeSplitting: {
     message: 'Reduce JavaScript Payloads with Code Splitting',
@@ -233,6 +231,19 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                 <FsContent>
 
                   ${
+                    deployment.routes.length
+                      ? htm`<Box marginBottom="10px">
+                    <Box fontSize="14px" fontWeight="500" marginBottom="5px">Routes</Box>
+                    ${deployment.routes.map(route =>
+                      route.src && route.dest
+                        ? htm`<Box>- ${route.src} -> ${route.dest}</Box>`
+                        : ''
+                    )}
+                  </Box>`
+                      : ''
+                  }
+
+                  ${
                     deployment.build.env.filter(e => !e.startsWith('NOW_'))
                       .length
                       ? htm`<Box marginBottom="10px">
@@ -311,9 +322,9 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
 
                           ${
                             note
-                              ? htm`<Box gridColumn="1/ span 3" marginTop="15px" fontWeight="bold"><Link href=${note.link} target="_blank">${
-                                  note.message
-                                }</Link></Box>`
+                              ? htm`<Box gridColumn="1/ span 3" marginTop="15px" fontWeight="bold"><Link href=${
+                                  note.link
+                                } target="_blank">${note.message}</Link></Box>`
                               : ''
                           }
 

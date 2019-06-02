@@ -1,9 +1,16 @@
 const { htm } = require('@zeit/integration-utils');
-const HOST = 'http://localhost:5005';
+const { ROOT_URL } = process.env;
 
-const getBackgroundImageBox = (url, width = 40, height = 40) =>
-  htm`<Box backgroundImage=${'url(' + url + ')'} width=${width +
-    'px'} height=${height + 'px'} backgroundSize="cover" />`;
+const getBackgroundImageBox = (
+  url,
+  width = 40,
+  height = 40,
+  display = 'block'
+) =>
+  htm`<Box display=${display} backgroundImage=${'url(' +
+    url +
+    ')'} width=${width + 'px'} height=${height +
+    'px'} backgroundSize="cover" />`;
 
 module.exports = {
   apiClient(zeitClient) {
@@ -40,7 +47,7 @@ module.exports = {
     };
   },
   transformLogLine(text, date) {
-    let newText = text;
+    let newText = text.replace(/\033\[[0-9;]*m/g, '');
 
     // structure reports
     if (newText.includes('REPORT RequestId:')) {
@@ -74,7 +81,8 @@ module.exports = {
         warning: '#FF0000',
         'WARNING:': '#FF0000',
         success: '#2CBE4E',
-        Done: '#2CBE4E'
+        Done: '#2CBE4E',
+        'MODE:': '#FF0080'
       };
       let word = '';
 
@@ -91,19 +99,59 @@ module.exports = {
         <Box>
             ${
               word
-                ? htm`<Box color=${colors[word]} display="inline"><B>${word}</B></Box>`
+                ? htm`<Box color=${
+                    colors[word]
+                  } display="inline"><B>${word}</B></Box>`
                 : ''
             }
             ${
               link !== ''
                 ? htm`<Link target="_blank" href=${link}>
-              <Box display="inline" textDecoration="underline" color="#888888">${textBr.length ? textBr.map(te => htm`${te}<BR />`) : rText}</Box>
+              <Box display="inline" textDecoration="underline" color="#888888">${
+                textBr.length ? textBr.map(te => htm`${te}<BR />`) : rText
+              }</Box>
             </Link>`
-                : htm`<Box display="inline">${textBr.length ? textBr.map(te => htm`${te}<BR />`) : rText}</Box>`
+                : htm`<Box display="inline">${
+                    textBr.length ? textBr.map(te => htm`${te}<BR />`) : rText
+                  }</Box>`
             }
         </Box>
       </Box>`;
     };
+
+    //asset size limit:
+
+    if (newText.match(/Creating lambda for page: \"(.*)\"/)) {
+      const [text, file] = newText.match(/Creating lambda for page: \"(.*)\"/);
+      return htm`<Box display="flex">
+        <Box marginRight="20px" color="#666">${date}</Box>
+        <Box>
+          ${getBackgroundImageBox(
+            ROOT_URL + '/lambda.svg',
+            20,
+            15,
+            'inline-block'
+          )}
+          <Box display="inline-block">Creating lambda for page: <B>${file}</B></Box>
+        </Box>
+      </Box>`;
+    }
+
+    if (newText.match(/Created lambda for page: \"(.*)\"/)) {
+      const [text, file] = newText.match(/Created lambda for page: \"(.*)\"/);
+      return htm`<Box display="flex">
+        <Box marginRight="20px" color="#666">${date}</Box>
+        <Box>
+          ${getBackgroundImageBox(
+            ROOT_URL + '/lambda.svg',
+            20,
+            15,
+            'inline-block'
+          )}
+          <Box display="inline-block">Created lambda for page: <B>${file}</B></Box>
+        </Box>
+      </Box>`;
+    }
 
     if (newText.includes('No license field')) {
       return colorStartWord(
@@ -127,10 +175,23 @@ module.exports = {
     }
 
     if (newText.startsWith('normalized package.json result:')) {
-      console.log(newText);
+      const pkgJson = newText.replace('normalized package.json result:', '');
+
+      const d = JSON.parse(JSON.stringify(pkgJson, undefined, 2));
+
+      return htm`<Box display="flex">
+      <Box marginRight="20px" color="#666">${date}</Box>
+      <Box>
+        <Box>normalized package.json result:</Box>
+        <Code>${d}</Code>
+      </Box>
+    </Box>`;
     }
 
     if (newText.startsWith('info')) {
+      return colorStartWord(newText);
+    }
+    if (newText.startsWith('MODE:')) {
       return colorStartWord(newText);
     }
     if (newText.startsWith('warning') || newText.startsWith('WARNING:')) {
@@ -143,7 +204,9 @@ module.exports = {
     newText = newText.split('\n');
     return htm`<Box display="flex">
       <Box marginRight="20px" color="#666">${date}</Box>
-      <Box>${newText.length > 1 ? newText.map(te => htm`${te}<BR />`) : text}</Box>
+      <Box>${
+        newText.length > 1 ? newText.map(te => htm`${te}<BR />`) : text
+      }</Box>
     </Box>
 
     `;
@@ -168,7 +231,7 @@ module.exports = {
 
     if (ext.length > 1) {
       return getBackgroundImageBox(
-        HOST + '/' + ext.pop() + '.svg',
+        ROOT_URL + '/' + ext.pop() + '.svg',
         width,
         height
       );
