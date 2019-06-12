@@ -16,7 +16,7 @@ const notes = {
     link:
       'https://developers.google.com/web/fundamentals/performance/optimizing-javascript/code-splitting/'
   },
-  codeSplitting: {
+  compressImage: {
     message: 'Think about reducing the image size',
     link: 'https://squoosh.app/'
   }
