@@ -1,4 +1,5 @@
 const { htm: html } = require('@zeit/integration-utils');
+const { parse, format } = require('date-fns');
 const { ROOT_URL } = process.env;
 
 const getBackgroundImageBox = (
@@ -17,7 +18,7 @@ const getBackgroundImageBox = (
     />
   `;
 
-const colorStartWord = (text, date, link = '') => {
+const colorStartWord = (text, link = '') => {
   const colors = {
     info: '#0076FF',
     warning: '#F5A623',
@@ -42,41 +43,36 @@ const colorStartWord = (text, date, link = '') => {
   const textBr = rText.split('\n');
 
   return html`
-    <Box display="flex">
-      <Box marginRight="20px" color="#666">${date}</Box>
-      <Box>
-        ${word
-          ? html`
-              <Box color=${colors[word]} display="inline"><B>${word}</B></Box>
-            `
-          : ''}
-        ${link !== ''
-          ? html`<Link target="_blank" href=${link}>
-              <Box display="inline" textDecoration="underline" color="#888888">${
-                textBr.length
-                  ? textBr.map(
-                      te =>
-                        html`
-                          ${te}<BR />
-                        `
-                    )
-                  : rText
-              }</Box>
-            </Link>`
-          : html`
-              <Box display="inline"
-                >${textBr.length
-                  ? textBr.map(
-                      te =>
-                        html`
-                          ${te}<BR />
-                        `
-                    )
-                  : rText}</Box
-              >
-            `}
-      </Box>
-    </Box>
+    ${word
+      ? html`
+          <Box color=${colors[word]} display="inline"><B>${word}</B></Box>
+        `
+      : ''}
+    ${link !== ''
+      ? html`<Link target="_blank" href=${link}>
+            <Box display="inline" textDecoration="underline" color="#888888">${
+              textBr.length
+                ? textBr.map(
+                    te =>
+                      html`
+                        ${te}<BR />
+                      `
+                  )
+                : rText
+            }</Box>
+          </Link>`
+      : html`
+          <Box display="inline"
+            >${textBr.length
+              ? textBr.map(
+                  te =>
+                    html`
+                      ${te}<BR />
+                    `
+                )
+              : rText}</Box
+          >
+        `}
   `;
 };
 module.exports = {
@@ -113,199 +109,197 @@ module.exports = {
       }
     };
   },
-  transformLogLine(text, date) {
-    let newText = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
-    const trimmedText = newText.trim();
+  compressLogs(logs) {
+    if (logs) {
+      const logsDate = {};
 
-    // structure reports
-    if (newText.includes('REPORT RequestId:')) {
-      const splitValues = newText
-        .replace('REPORT ', '')
-        .replace(/\n/g, '')
-        .split('\t');
-      const structuredReport = splitValues
-        .map(v => {
-          const [key, value] = v.split(':');
+      logs.forEach(log => {
+        const { info, text, date } = log.payload;
+        const { type, entrypoint, path, name } = info;
 
-          if (key && value) {
-            return {
-              key: key.trim(),
-              value: value.trim()
-            };
-          }
-        })
-        .filter(k => !!k);
+        let arr = logsDate[format(parse(date), 'MM.DD.YYYY | H:mm:ss')];
 
-      return html`
-        <Box
-          padding="10px"
-          position="relative"
-          marginBottom="10px"
-          backgroundColor="#1f1f1f"
-          borderRadius="5px"
-        >
-          <Box position="absolute" right="10px" top="10px" color="#666"
-            >${date}</Box
-          >
-          ${structuredReport.map(
-            rep =>
-              html`
-                <Box><B>${rep.key}:</B> ${rep.value}</Box>
-              `
-          )}</Box
-        >
-      `;
+        if (!arr) {
+          arr = logsDate[format(parse(date), 'MM.DD.YYYY | H:mm:ss')] = [];
+        }
+
+        arr.push(log);
+      });
+
+      return logsDate;
     }
+    return null;
+  },
+  transformLogLine(text) {
+    let logText = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').trim();
 
-    //asset size limit:
-
-    if (newText.startsWith('TaskID')) {
-      console.log(newText.split('TaskID')[1]);
-      const [title, text] = newText.split(' ');
-
-      return html`
-        <Box
-          display="flex"
-          padding="10px"
-          position="relative"
-          marginBottom="10px"
-          backgroundColor="#1f1f1f"
-          borderRadius="5px"
-        >
-          <Box marginRight="20px" color="#666">${date}</Box>
-          <Box> <B>${title + ':'}</B> ${text} </Box>
-        </Box>
-      `;
-    }
-
-    if (newText.startsWith('entrypoint size limit:')) {
-      console.log(newText.split('Entrypoints:')[1]);
-
-      return html`
-        <Box display="flex">
-          <Box marginRight="20px" color="#666">${date}</Box>
-          <Box>
-            ${newText}
-          </Box>
-        </Box>
-      `;
-    }
-
-    if (newText.match(/Creating lambda for page: \"(.*)\"/)) {
-      const [text, file] = newText.match(/Creating lambda for page: \"(.*)\"/);
-      return html`
-        <Box display="flex">
-          <Box marginRight="20px" color="#666">${date}</Box>
-          <Box>
-            ${getBackgroundImageBox(
-              ROOT_URL + '/lambda.svg',
-              20,
-              15,
-              'inline-block'
-            )}
-            <Box display="inline-block"
-              >Creating lambda for page: <B>${file}</B></Box
-            >
-          </Box>
-        </Box>
-      `;
-    }
-
-    if (newText.match(/Created lambda for page: \"(.*)\"/)) {
-      const [text, file] = newText.match(/Created lambda for page: \"(.*)\"/);
-      return html`
-        <Box display="flex">
-          <Box marginRight="20px" color="#666">${date}</Box>
-          <Box>
-            ${getBackgroundImageBox(
-              ROOT_URL + '/lambda.svg',
-              20,
-              15,
-              'inline-block'
-            )}
-            <Box display="inline-block"
-              >Created lambda for page: <B>${file}</B></Box
-            >
-          </Box>
-        </Box>
-      `;
-    }
-
-    if (newText.includes('No license field')) {
-      return colorStartWord(
-        newText,
-        date,
-        'https://docs.npmjs.com/files/package.json#license'
-      );
-    }
-
-    if (newText.includes('No repository field')) {
-      return colorStartWord(
-        newText,
-        date,
-        'https://docs.npmjs.com/files/package.json#repository'
-      );
-    }
-
-    if (newText.includes('No lockfile found')) {
-      return colorStartWord(
-        newText,
-        date,
-        'https://yarnpkg.com/lang/en/docs/yarn-lock/'
-      );
-    }
-
-    if (newText.startsWith('normalized package.json result:')) {
-      const pkgJson = newText.replace('normalized package.json result:', '');
+    if (logText.startsWith('normalized package.json result:')) {
+      const pkgJson = logText.replace('normalized package.json result:', '');
 
       const d = JSON.parse(JSON.stringify(pkgJson, undefined, 2));
 
       return html`
-        <Box display="flex">
-          <Box marginRight="20px" color="#666">${date}</Box>
-          <Box>
-            <Box>normalized package.json result:</Box>
-            <Code>${d}</Code>
-          </Box>
-        </Box>
+        <Box>normalized package.json result:</Box>
+        <Code>${d}</Code>
       `;
     }
 
-    if (trimmedText.toLowerCase().startsWith('info')) {
-      return colorStartWord(newText, date);
-    }
-    if (trimmedText.startsWith('MODE:')) {
-      return colorStartWord(newText);
-    }
-    if (
-      trimmedText.toLowerCase().startsWith('warning') ||
-      trimmedText.startsWith('WARNING:')
-    ) {
-      return colorStartWord(newText, date);
-    }
-    if (
-      trimmedText.trim().startsWith('success') ||
-      trimmedText.toLowerCase().startsWith('done')
-    ) {
-      return colorStartWord(newText, date);
-    }
+    return logText.split('\n').map(currentText => {
+      // structure reports
+      if (
+        currentText.includes('REPORT RequestId:') ||
+        currentText.includes('START RequestId:') ||
+        currentText.includes('END RequestId:')
+      ) {
 
-    newText = newText.split('\n');
-    return html`
-      <Box display="flex">
-        <Box marginRight="20px" color="#666">${date}</Box>
-        <Box
-          >${newText.length > 1
-            ? newText.map(
-                te =>
-                  html`
-                    ${te}<BR />
-                  `
-              )
-            : newText}</Box
-        >
-      </Box>
-    `;
+        const type = currentText.match(/\w+[^\s]/)[0]
+
+        currentText = currentText
+          .replace(/\n/g, '|')
+          .replace(/\t/g, '|')
+          .replace(/\w+[^\s]/, '')
+          .trim()
+          .replace(/:\s/g, ':')
+          .split('|');
+
+        if (currentText.length === 1) {
+          currentText = currentText.join('|').split(' ');
+        }
+
+        structuredReport = currentText.map(str => {
+          const [key, value] = str.split(':');
+
+          return { key, value };
+        });
+
+        //   <Box position="absolute" right="10px" top="10px" color="#666"
+        //   >${date}</Box
+        // >
+        return html`
+          <Box
+            padding="10px"
+            position="relative"
+            marginBottom="10px"
+            backgroundColor="#1f1f1f"
+            borderRadius="5px"
+            width="100%"
+          >
+            <Box position="absolute" right="10px" top="10px" color="#666">
+              ${type}
+            </Box>
+            ${structuredReport.map(
+              rep =>
+                html`
+                  <Box><B>${rep.key + ':'}</B> ${rep.value}</Box>
+                `
+            )}</Box
+          >
+        `;
+      }
+
+      //asset size limit:
+
+      if (currentText.startsWith('TaskID')) {
+        const [title, text] = currentText.split(' ');
+
+        return html`
+          <B>${title + ':'}</B> ${text}
+        `;
+      }
+
+      if (currentText.match(/Creating lambda for page: \"(.*)\"/)) {
+        const [_, file] = currentText.match(
+          /Creating lambda for page: \"(.*)\"/
+        );
+        return html`
+          <Box display="flex">
+            ${getBackgroundImageBox(
+              ROOT_URL + '/lambda.svg',
+              20,
+              15,
+              'inline-block'
+            )}
+            <Box display="inline-block">
+              Creating lambda for page: <B>${file}</B>
+            </Box>
+          </Box>
+        `;
+      }
+
+      if (currentText.match(/Created lambda for page: \"(.*)\"/)) {
+        const [_, file] = currentText.match(
+          /Created lambda for page: \"(.*)\"/
+        );
+        return html`
+          <Box display="flex">
+            ${getBackgroundImageBox(
+              ROOT_URL + '/lambda.svg',
+              20,
+              15,
+              'inline-block'
+            )}
+            <Box display="inline-block">
+              Created lambda for page: <B>${file}</B>
+            </Box>
+          </Box>
+        `;
+      }
+
+      if (currentText.includes('No license field')) {
+        return colorStartWord(
+          currentText,
+          'https://docs.npmjs.com/files/package.json#license'
+        );
+      }
+
+      if (currentText.includes('No repository field')) {
+        return colorStartWord(
+          currentText,
+          'https://docs.npmjs.com/files/package.json#repository'
+        );
+      }
+
+      if (currentText.includes('No lockfile found')) {
+        return colorStartWord(
+          currentText,
+          'https://yarnpkg.com/lang/en/docs/yarn-lock/'
+        );
+      }
+
+      if (logText.toLowerCase().startsWith('info')) {
+        return colorStartWord(currentText);
+      }
+      if (logText.startsWith('MODE:')) {
+        return colorStartWord(currentText);
+      }
+      if (
+        logText.toLowerCase().startsWith('warning') ||
+        logText.startsWith('WARNING:')
+      ) {
+        return colorStartWord(currentText);
+      }
+      if (
+        logText.trim().startsWith('success') ||
+        logText.toLowerCase().startsWith('done')
+      ) {
+        return colorStartWord(currentText);
+      }
+
+      return html`
+        <Box>${currentText}</Box>
+      `;
+
+      if (currentText.startsWith('entrypoint size limit:')) {
+        return html`
+          <Box display="flex">
+            <Box marginRight="20px" color="#666">${date}</Box>
+            <Box>
+              ${currentText}
+            </Box>
+          </Box>
+        `;
+      }
+    });
   },
   isImage(file) {
     return (

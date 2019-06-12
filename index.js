@@ -1,6 +1,10 @@
 const { withUiHook, htm: html } = require('@zeit/integration-utils');
-const { parse, format } = require('date-fns');
-const { apiClient, transformLogLine, getIconByFile } = require('./helpers');
+const {
+  apiClient,
+  transformLogLine,
+  getIconByFile,
+  compressLogs
+} = require('./helpers');
 
 const Builds = require('./components/builds');
 
@@ -11,6 +15,10 @@ const notes = {
     message: 'Reduce JavaScript Payloads with Code Splitting',
     link:
       'https://developers.google.com/web/fundamentals/performance/optimizing-javascript/code-splitting/'
+  },
+  codeSplitting: {
+    message: 'Think about reducing the image size',
+    link: 'https://squoosh.app/'
   }
 };
 
@@ -25,7 +33,10 @@ const Log = ({ logs, name }) => {
           prefix = 'Entrypoint: ';
         }
 
-        return logs[logName] && logs[logName].length
+        const compressedLogs = compressLogs(logs[logName]);
+        const countLogs = compressedLogs ? Object.keys(compressedLogs).length : 0;
+
+        return countLogs > 0
           ? html`
               <Fieldset>
                 <FsContent>
@@ -46,17 +57,30 @@ const Log = ({ logs, name }) => {
                     lineHeight="20px"
                     backgroundColor="#000"
                     color="#fff"
-                    padding="20px"
+                    padding="20px 20px 0 20px"
                     borderRadius="5px"
                   >
-                    ${logs[logName].map(log => {
-                      const { info, text, date } = log.payload;
-                      const { type, entrypoint, path, name } = info;
-
-                      return transformLogLine(
-                        text,
-                        format(parse(date), 'MM.DD.YYYY | H:mm:ss')
-                      );
+                    ${Object.keys(compressedLogs).map((date, index) => {
+                      return html`
+                        <Box
+                          display="grid"
+                          gridTemplateColumns="200px 1fr"
+                          gridGap="20px"
+                          borderBottom=${index === countLogs - 1
+                            ? 0
+                            : '1px solid rgba(255, 255, 255, 0.2)'}
+                          padding=${index === 0 ? '0 0 20px' : '20px 0'}
+                        >
+                          <Box color="#666" fontWeight="bold">
+                            ${date}
+                          </Box>
+                          <Box>
+                            ${compressedLogs[date].map(log =>
+                              transformLogLine(log.payload.text)
+                            )}
+                          </Box>
+                        </Box>
+                      `;
                     })}
                   </Box>
                 </FsContent>
@@ -137,7 +161,6 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
         );
       }
     } catch (e) {
-      console.log(e);
       deployment = null;
       deployments = [];
       builds = [];
@@ -262,7 +285,8 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                       : ''
                   }
 
-                  ${deployment.build &&
+                  ${
+                    deployment.build &&
                     deployment.build.env &&
                     deployment.build.env.filter(e => !e.startsWith('NOW_'))
                       .length
@@ -282,7 +306,8 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                       : ''
                   }
 
-                  ${deployment.env &&
+                  ${
+                    deployment.env &&
                     deployment.env.filter(e => !e.startsWith('NOW_')).length
                       ? html`
                           <Box marginBottom="10px">

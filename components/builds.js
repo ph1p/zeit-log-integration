@@ -85,11 +85,16 @@ module.exports = ({ builds, notes, deployment }) => {
                     const url = 'https://' + deployment.url + '/' + out.path;
                     const fileSize = prettyBytes(out.size);
                     const fileName = out.path.replace(/^.*[\\\/]/, '');
+                    const fileNameLC = fileName.toLowerCase();
                     const path = out.path.replace(fileName, '');
                     let note = null;
 
-                    if (out.size >= 1300000 && fileName.includes('.js')) {
+                    if (out.size >= 1000000 && fileNameLC.includes('.js')) {
                       note = notes.codeSplitting;
+                    }
+
+                    if (out.size >= 6000000 && (fileNameLC.includes('.png') || fileNameLC.includes('.jpg') || fileNameLC.includes('.jpeg'))) {
+                      note = notes.compressImage;
                     }
 
                     return html`<Box
