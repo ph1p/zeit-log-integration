@@ -1,13 +1,12 @@
-const { withUiHook, htm } = require('@zeit/integration-utils');
-const prettyBytes = require('pretty-bytes');
+const { withUiHook, htm: html } = require('@zeit/integration-utils');
 const { parse, format } = require('date-fns');
 const {
   apiClient,
   transformLogLine,
-  isImage,
-  getBackgroundImageBox,
   getIconByFile
 } = require('./helpers');
+
+const Builds = require('./components/builds');
 
 const { ROOT_URL } = process.env;
 
@@ -17,15 +16,6 @@ const notes = {
     link:
       'https://developers.google.com/web/fundamentals/performance/optimizing-javascript/code-splitting/'
   }
-};
-
-const stateColors = {
-  INITIALIZING: '#EAEAEA',
-  ANALYZING: '#0076FF',
-  BUILDING: '#D9931E',
-  DEPLOYING: '#F5A623',
-  READY: '#2CBE4E',
-  ERROR: '#FF0000'
 };
 
 const Log = ({ logs, name }) => {
@@ -40,7 +30,7 @@ const Log = ({ logs, name }) => {
         }
 
         return logs[logName] && logs[logName].length
-          ? htm`<Fieldset>
+          ? html`<Fieldset>
           <FsContent>
             <Box display="flex" marginBottom="10px">
               <Box marginRight="5px">
@@ -66,19 +56,6 @@ const Log = ({ logs, name }) => {
           : '';
       })
     : '';
-};
-
-const getLocationList = out => {
-  if (out.lambda && out.lambda.deployedTo) {
-    return htm`<Box><B>Locations:</B> ${out.lambda.deployedTo.map(lo => {
-      const name = lo.replace(/[0-9]/g, '');
-
-      return htm`<Link target="_blank" href=${'https://' +
-        name +
-        '.zeit.co'}>${lo.toUpperCase()}</Link>`;
-    })}</Box>`;
-  }
-  return '';
 };
 
 module.exports = withUiHook(async ({ payload, zeitClient }) => {
@@ -107,6 +84,7 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
       deployment = (await api.getDeploymentById(id)) || [];
 
       const logs = await api.getDeploymentLogs(metadata.selectedDeployment);
+
 
       logs.forEach(l => {
         const { path, entrypoint } = l.payload.info;
@@ -193,26 +171,12 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
     }
   }
 
-  const usedPackage = use => {
-    if (!use) return '';
-
-    if (!use.includes('@now')) {
-      return htm`uses <B>${use}</B>`;
-    }
-
-    const url =
-      'https://github.com/zeit/now-builders/tree/canary/packages/' +
-      use.replace('@', '').replace('/', '-');
-
-    return htm`uses <Link href=${url}<Link target="_blank"><B>${use}</B></Link>`;
-  };
-
-  return htm`
+  return html`
     <Page>
 
     ${
       deployment && deployments
-        ? htm`
+        ? html`
         <Fieldset>
           <FsContent>
             <Box display="grid" gridTemplateColumns="1fr 250px" alignItems="center">
@@ -228,7 +192,7 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                     name = 'Error -> ' + name;
                   }
 
-                  return htm`<Option selected=${deployment.uid ===
+                  return html`<Option selected=${deployment.uid ===
                     metadata.selectedDeployment} value=${
                     deployment.uid
                   } caption=${name} />`;
@@ -255,11 +219,11 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
 
                   ${
                     deployment.routes.filter(r => r.src && r.dest).length
-                      ? htm`<Box marginBottom="10px">
+                      ? html`<Box marginBottom="10px">
                       <FsTitle>Routes</FsTitle>
                     ${deployment.routes.map(route =>
                       route.src && route.dest
-                        ? htm`<Box display="grid" marginBottom="10px" gridTemplateColumns="40px 1fr 40px 1fr" lineHeight="18px" backgroundColor="#f3f3f3" borderRadius="5px" padding="10px" fontSize="12px">
+                        ? html`<Box display="grid" marginBottom="10px" gridTemplateColumns="40px 1fr 40px 1fr" lineHeight="18px" backgroundColor="#f3f3f3" borderRadius="5px" padding="10px" fontSize="12px">
                           <Box>from</Box>
                           <Box><B>${route.src}</B></Box>
                           <Box textAlign="center">to</Box>
@@ -274,33 +238,33 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                   ${
                     deployment.build.env.filter(e => !e.startsWith('NOW_'))
                       .length
-                      ? htm`<Box marginBottom="10px">
+                      ? html`<Box marginBottom="10px">
                       <FsTitle>Environment Variables (build)</FsTitle>
                     ${deployment.build.env
                       .filter(e => !e.startsWith('NOW_'))
-                      .map(e => htm`<Box>- ${e}</Box>`)}
+                      .map(e => html`<Box>- ${e}</Box>`)}
                   </Box>`
                       : ''
                   }
 
                   ${
                     deployment.env.filter(e => !e.startsWith('NOW_')).length
-                      ? htm`<Box marginBottom="10px">
+                      ? html`<Box marginBottom="10px">
                       <FsTitle>Environment Variables</FsTitle>
                     ${deployment.env
                       .filter(e => !e.startsWith('NOW_'))
-                      .map(e => htm`<Box>- ${e}</Box>`)}
+                      .map(e => html`<Box>- ${e}</Box>`)}
                   </Box>`
                       : ''
                   }
 
                   ${
                     deployment.alias.length > 0
-                      ? htm`<Box>
+                      ? html`<Box>
                     <FsTitle>Alias</FsTitle>
                     ${deployment.alias.map(
                       e =>
-                        htm`<Box>- <Link target="_blank" href=${'https://' +
+                        html`<Box>- <Link target="_blank" href=${'https://' +
                           e}>${e}</Link></Box>`
                     )}
                   </Box>`
@@ -310,94 +274,14 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
               </Fieldset>
             </Box>
 
-            <Box maxHeight="400px" overflow="auto">
-              <Fieldset>
-                <FsContent>
-                  <FsTitle>Builds</FsTitle>
-                  <Box display="grid" gridGap="10px">
-                    ${builds.map(
-                      build => htm`<Box display="grid" gridGap="10px">
-                      <Box display="flex" justifyContent="space-between">
-                        <Box>
-                          <B>ID:</B> ${build.id}
-                          <Box color="#999" lineHeight="11px" fontSize="11px">${
-                            build.entrypoint
-                          }${usedPackage(build.use)}</Box>
-                        </Box>
-                        <Box alignSelf="center">
-                          <Box
-                            color="#999"
-                            lineHeight="11px"
-                            fontSize="11px"
-                            color="#fff"
-                            fontWeight="bold"
-                            borderRadius="5px"
-                            padding="10px 15px"
-                            backgroundColor=${stateColors[build.readyState]}>
-                            ${build.readyState}
-                          </Box>
-                        </Box>
-                      </Box>
-                      ${build.output.map(out => {
-                        const icon = getIconByFile(
-                          out.type === 'lambda' ? '.lambda' : out.path,
-                          17,
-                          15
-                        );
-                        const url =
-                          'https://' + deployment.url + '/' + out.path;
-                        const fileSize = prettyBytes(out.size);
-                        const fileName = out.path.replace(/^.*[\\\/]/, '');
-                        const path = out.path.replace(fileName, '');
-                        let note = null;
-
-                        if (out.size >= 1300000 && fileName.includes('.js')) {
-                          note = notes.codeSplitting;
-                        }
-
-                        return htm`<Box backgroundColor="#f3f3f3" borderRadius="5px" display="grid" gridTemplateColumns="24px 1fr 70px" position="relative" padding="10px" fontSize="12px">
-                            <Box alignSelf="center">${icon}</Box>
-                          <Box>
-                          <Link target="_blank" href=${url}>${fileName}</Link>
-                          <Box color="#999" lineHeight="11px" fontSize="11px">${path}</Box>
-                          </Box>
-                          <Box textAlign="right" color="#999">${
-                            out.size ? fileSize : ''
-                          }</Box>
-                          ${getLocationList(out)}
-
-                          ${
-                            note
-                              ? htm`<Box gridColumn="1/ span 3" marginTop="15px" fontWeight="bold"><Link href=${
-                                  note.link
-                                } target="_blank">${note.message}</Link></Box>`
-                              : ''
-                          }
-
-                          ${
-                            isImage(out.path)
-                              ? htm`<Box marginTop="12px">${getBackgroundImageBox(
-                                  'https://' + deployment.url + '/' + out.path,
-                                  50,
-                                  50
-                                )}</Box>`
-                              : ''
-                          }
-                          </Box>`;
-                      })}</Box>`
-                    )}
-                  </Box>
-                </FsContent>
-              </Fieldset>
-            </Box>
+            <${Builds} builds=${builds} notes=${notes} deployment=${deployment} />
           </Box>
 
-
           ${Object.keys(allLogs).map(
-            name => htm`
+            name => html`
             <${Log} name=${name} logs=${allLogs[name]} />`
           )}`
-        : htm`
+        : html`
           <Box display="grid" alignItems="center" minHeight="900px" justifyItems="center">
             <Box alignSelf="end">
               <B>Please</B>
