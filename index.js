@@ -1,10 +1,6 @@
 const { withUiHook, htm: html } = require('@zeit/integration-utils');
 const { parse, format } = require('date-fns');
-const {
-  apiClient,
-  transformLogLine,
-  getIconByFile
-} = require('./helpers');
+const { apiClient, transformLogLine, getIconByFile } = require('./helpers');
 
 const Builds = require('./components/builds');
 
@@ -30,29 +26,42 @@ const Log = ({ logs, name }) => {
         }
 
         return logs[logName] && logs[logName].length
-          ? html`<Fieldset>
-          <FsContent>
-            <Box display="flex" marginBottom="10px">
-              <Box marginRight="5px">
-                ${getIconByFile(name)}
-              </Box>
-              <Box alignSelf="center">
-                <FsTitle>${prefix + name}</FsTitle>
-              </Box>
-            </Box>
-            <Box fontFamily="Menlo, Monaco, 'Lucida Console', 'Liberation Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace, serif" maxHeight="400px" overflow="auto" whiteSpace="nowrap" maxWidth="958px" lineHeight="20px" backgroundColor="#000" color="#fff" padding="20px" borderRadius="5px">
-              ${logs[logName].map(log => {
-                const { info, text, date } = log.payload;
-                const { type, entrypoint, path, name } = info;
+          ? html`
+              <Fieldset>
+                <FsContent>
+                  <Box display="flex" marginBottom="10px">
+                    <Box marginRight="5px">
+                      ${getIconByFile(name)}
+                    </Box>
+                    <Box alignSelf="center">
+                      <FsTitle>${prefix + name}</FsTitle>
+                    </Box>
+                  </Box>
+                  <Box
+                    fontFamily="Menlo, Monaco, 'Lucida Console', 'Liberation Mono', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace, serif"
+                    maxHeight="400px"
+                    overflow="auto"
+                    whiteSpace="nowrap"
+                    maxWidth="958px"
+                    lineHeight="20px"
+                    backgroundColor="#000"
+                    color="#fff"
+                    padding="20px"
+                    borderRadius="5px"
+                  >
+                    ${logs[logName].map(log => {
+                      const { info, text, date } = log.payload;
+                      const { type, entrypoint, path, name } = info;
 
-                return transformLogLine(
-                  text,
-                  format(parse(date), 'MM.DD.YYYY | H:mm:ss')
-                );
-              })}
-            </Box>
-          </FsContent>
-        </Fieldset>`
+                      return transformLogLine(
+                        text,
+                        format(parse(date), 'MM.DD.YYYY | H:mm:ss')
+                      );
+                    })}
+                  </Box>
+                </FsContent>
+              </Fieldset>
+            `
           : '';
       })
     : '';
@@ -85,7 +94,6 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
 
       const logs = await api.getDeploymentLogs(metadata.selectedDeployment);
 
-
       logs.forEach(l => {
         const { path, entrypoint } = l.payload.info;
 
@@ -114,18 +122,20 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
         }
       });
 
-      buildLogs = logs.filter(
-        l => l.type === 'stdout' && l.payload.info.type === 'build'
-      );
-      outputLogs = logs.filter(
-        l => l.type === 'stdout' && l.payload.info.type === 'output'
-      );
-      otherLogs = logs.filter(
-        l =>
-          l.type === 'stdout' &&
-          l.payload.info.type !== 'output' &&
-          l.payload.info.type !== 'build'
-      );
+      if (logs) {
+        buildLogs = logs.filter(
+          l => l.type === 'stdout' && l.payload.info.type === 'build'
+        );
+        outputLogs = logs.filter(
+          l => l.type === 'stdout' && l.payload.info.type === 'output'
+        );
+        otherLogs = logs.filter(
+          l =>
+            l.type === 'stdout' &&
+            l.payload.info.type !== 'output' &&
+            l.payload.info.type !== 'build'
+        );
+      }
     } catch (e) {
       console.log(e);
       deployment = null;
@@ -173,9 +183,7 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
 
   return html`
     <Page>
-
-    ${
-      deployment && deployments
+      ${deployment && deployments
         ? html`
         <Fieldset>
           <FsContent>
@@ -192,10 +200,13 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                     name = 'Error -> ' + name;
                   }
 
-                  return html`<Option selected=${deployment.uid ===
-                    metadata.selectedDeployment} value=${
-                    deployment.uid
-                  } caption=${name} />`;
+                  return html`
+                    <Option
+                      selected=${deployment.uid === metadata.selectedDeployment}
+                      value=${deployment.uid}
+                      caption=${name}
+                    />
+                  `;
                 })}
               </Select>
             </Box>
@@ -218,56 +229,89 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
                 <FsContent>
 
                   ${
+                    deployment.routes &&
                     deployment.routes.filter(r => r.src && r.dest).length
-                      ? html`<Box marginBottom="10px">
-                      <FsTitle>Routes</FsTitle>
-                    ${deployment.routes.map(route =>
-                      route.src && route.dest
-                        ? html`<Box display="grid" marginBottom="10px" gridTemplateColumns="40px 1fr 40px 1fr" lineHeight="18px" backgroundColor="#f3f3f3" borderRadius="5px" padding="10px" fontSize="12px">
-                          <Box>from</Box>
-                          <Box><B>${route.src}</B></Box>
-                          <Box textAlign="center">to</Box>
-                          <Box textAlign="right"><B>${route.dest}</B></Box>
-                        </Box>`
-                        : ''
-                    )}
-                  </Box>`
+                      ? html`
+                          <Box marginBottom="10px">
+                            <FsTitle>Routes</FsTitle>
+                            ${deployment.routes.map(route =>
+                              route.src && route.dest
+                                ? html`
+                                    <Box
+                                      display="grid"
+                                      marginBottom="10px"
+                                      gridTemplateColumns="40px 1fr 40px 1fr"
+                                      lineHeight="18px"
+                                      backgroundColor="#f3f3f3"
+                                      borderRadius="5px"
+                                      padding="10px"
+                                      fontSize="12px"
+                                    >
+                                      <Box>from</Box>
+                                      <Box><B>${route.src}</B></Box>
+                                      <Box textAlign="center">to</Box>
+                                      <Box textAlign="right">
+                                        <B>${route.dest}</B>
+                                      </Box>
+                                    </Box>
+                                  `
+                                : ''
+                            )}
+                          </Box>
+                        `
                       : ''
                   }
 
-                  ${
+                  ${deployment.build &&
+                    deployment.build.env &&
                     deployment.build.env.filter(e => !e.startsWith('NOW_'))
                       .length
-                      ? html`<Box marginBottom="10px">
-                      <FsTitle>Environment Variables (build)</FsTitle>
-                    ${deployment.build.env
-                      .filter(e => !e.startsWith('NOW_'))
-                      .map(e => html`<Box>- ${e}</Box>`)}
-                  </Box>`
+                      ? html`
+                          <Box marginBottom="10px">
+                            <FsTitle>Environment Variables (build)</FsTitle>
+                            ${deployment.build.env
+                              .filter(e => !e.startsWith('NOW_'))
+                              .map(
+                                e =>
+                                  html`
+                                    <Box>- ${e}</Box>
+                                  `
+                              )}
+                          </Box>
+                        `
                       : ''
                   }
 
-                  ${
+                  ${deployment.env &&
                     deployment.env.filter(e => !e.startsWith('NOW_')).length
-                      ? html`<Box marginBottom="10px">
-                      <FsTitle>Environment Variables</FsTitle>
-                    ${deployment.env
-                      .filter(e => !e.startsWith('NOW_'))
-                      .map(e => html`<Box>- ${e}</Box>`)}
-                  </Box>`
+                      ? html`
+                          <Box marginBottom="10px">
+                            <FsTitle>Environment Variables</FsTitle>
+                            ${deployment.env
+                              .filter(e => !e.startsWith('NOW_'))
+                              .map(
+                                e =>
+                                  html`
+                                    <Box>- ${e}</Box>
+                                  `
+                              )}
+                          </Box>
+                        `
                       : ''
                   }
 
                   ${
                     deployment.alias.length > 0
-                      ? html`<Box>
-                    <FsTitle>Alias</FsTitle>
-                    ${deployment.alias.map(
-                      e =>
-                        html`<Box>- <Link target="_blank" href=${'https://' +
-                          e}>${e}</Link></Box>`
-                    )}
-                  </Box>`
+                      ? html`
+                          <Box>
+                            <FsTitle>Alias</FsTitle>
+                            ${deployment.alias.map(
+                              e =>
+                                html`<Box>- <Link target="_blank" href=${'https://' +
+                                  e}>${e}</Link></Box>`
+                            )}
+                          </Box>
+                        `
                       : ''
                   }
                 </FsContent>
@@ -279,21 +323,25 @@ module.exports = withUiHook(async ({ payload, zeitClient }) => {
 
           ${Object.keys(allLogs).map(
             name => html`
-            <${Log} name=${name} logs=${allLogs[name]} />`
+              <${Log} name=${name} logs=${allLogs[name]} />
+            `
           )}`
         : html`
-          <Box display="grid" alignItems="center" minHeight="900px" justifyItems="center">
-            <Box alignSelf="end">
-              <B>Please</B>
-              <ProjectSwitcher />
+            <Box
+              display="grid"
+              alignItems="center"
+              minHeight="900px"
+              justifyItems="center"
+            >
+              <Box alignSelf="end">
+                <B>Please</B>
+                <ProjectSwitcher />
+              </Box>
+              <Box>
+                <Img src=${ROOT_URL + '/assets/illu.png'} />
+              </Box>
             </Box>
-            <Box>
-              <Img src=${ROOT_URL + '/assets/illu.png'} />
-            </Box>
-          </Box>
-        `
-    }
-
-		</Page>
-	`;
+          `}
+    </Page>
+  `;
 });
