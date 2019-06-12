@@ -1,4 +1,4 @@
-const { htm } = require('@zeit/integration-utils');
+const { htm: html } = require('@zeit/integration-utils');
 const { ROOT_URL } = process.env;
 
 const getBackgroundImageBox = (
@@ -7,11 +7,78 @@ const getBackgroundImageBox = (
   height = 40,
   display = 'block'
 ) =>
-  htm`<Box display=${display} backgroundImage=${'url(' +
-    url +
-    ')'} width=${width + 'px'} height=${height +
-    'px'} backgroundSize="cover" />`;
+  html`
+    <Box
+      display=${display}
+      backgroundImage=${'url(' + url + ')'}
+      width=${width + 'px'}
+      height=${height + 'px'}
+      backgroundSize="cover"
+    />
+  `;
 
+const colorStartWord = (text, date, link = '') => {
+  const colors = {
+    info: '#0076FF',
+    warning: '#F5A623',
+    'WARNING:': '#F5A623',
+    success: '#2CBE4E',
+    done: '#2CBE4E',
+    'MODE:': '#FF0080'
+  };
+  let word = '';
+
+  Object.keys(colors).forEach(color => {
+    if (
+      text
+        .toLowerCase()
+        .trim()
+        .startsWith(color)
+    ) {
+      word = color;
+    }
+  });
+  const rText = text.trim().replace(new RegExp(word, 'i'), '');
+  const textBr = rText.split('\n');
+
+  return html`
+    <Box display="flex">
+      <Box marginRight="20px" color="#666">${date}</Box>
+      <Box>
+        ${word
+          ? html`
+              <Box color=${colors[word]} display="inline"><B>${word}</B></Box>
+            `
+          : ''}
+        ${link !== ''
+          ? html`<Link target="_blank" href=${link}>
+              <Box display="inline" textDecoration="underline" color="#888888">${
+                textBr.length
+                  ? textBr.map(
+                      te =>
+                        html`
+                          ${te}<BR />
+                        `
+                    )
+                  : rText
+              }</Box>
+            </Link>`
+          : html`
+              <Box display="inline"
+                >${textBr.length
+                  ? textBr.map(
+                      te =>
+                        html`
+                          ${te}<BR />
+                        `
+                    )
+                  : rText}</Box
+              >
+            `}
+      </Box>
+    </Box>
+  `;
+};
 module.exports = {
   apiClient(zeitClient) {
     return {
@@ -47,7 +114,7 @@ module.exports = {
     };
   },
   transformLogLine(text, date) {
-    let newText = text.replace(/\033\[[0-9;]*m/g, '');
+    let newText = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
     const trimmedText = newText.trim();
 
     // structure reports
@@ -69,61 +136,26 @@ module.exports = {
         })
         .filter(k => !!k);
 
-      return htm`<Box padding="10px" position="relative" marginBottom="10px" backgroundColor="#1f1f1f" borderRadius="5px">
-        <Box position="absolute" right="10px" top="10px" color="#666">${date}</Box>
-      ${structuredReport.map(
-        rep => htm`<Box><B>${rep.key}:</B> ${rep.value}</Box>`
-      )}</Box>`;
+      return html`
+        <Box
+          padding="10px"
+          position="relative"
+          marginBottom="10px"
+          backgroundColor="#1f1f1f"
+          borderRadius="5px"
+        >
+          <Box position="absolute" right="10px" top="10px" color="#666"
+            >${date}</Box
+          >
+          ${structuredReport.map(
+            rep =>
+              html`
+                <Box><B>${rep.key}:</B> ${rep.value}</Box>
+              `
+          )}</Box
+        >
+      `;
     }
-
-    const colorStartWord = (text, link = '') => {
-      const colors = {
-        info: '#0076FF',
-        warning: '#F5A623',
-        'WARNING:': '#F5A623',
-        success: '#2CBE4E',
-        done: '#2CBE4E',
-        'MODE:': '#FF0080'
-      };
-      let word = '';
-
-      Object.keys(colors).forEach(color => {
-        if (
-          text
-            .toLowerCase()
-            .trim()
-            .startsWith(color)
-        ) {
-          word = color;
-        }
-      });
-      const rText = text.trim().replace(new RegExp(word, 'i'), '');
-      const textBr = rText.split('\n');
-
-      return htm`<Box display="flex">
-        <Box marginRight="20px" color="#666">${date}</Box>
-        <Box>
-            ${
-              word
-                ? htm`<Box color=${
-                    colors[word]
-                  } display="inline"><B>${word}</B></Box>`
-                : ''
-            }
-            ${
-              link !== ''
-                ? htm`<Link target="_blank" href=${link}>
-              <Box display="inline" textDecoration="underline" color="#888888">${
-                textBr.length ? textBr.map(te => htm`${te}<BR />`) : rText
-              }</Box>
-            </Link>`
-                : htm`<Box display="inline">${
-                    textBr.length ? textBr.map(te => htm`${te}<BR />`) : rText
-                  }</Box>`
-            }
-        </Box>
-      </Box>`;
-    };
 
     //asset size limit:
 
@@ -131,60 +163,78 @@ module.exports = {
       console.log(newText.split('TaskID')[1]);
       const [title, text] = newText.split(' ');
 
-      return htm`<Box display="flex" padding="10px" position="relative" marginBottom="10px" backgroundColor="#1f1f1f" borderRadius="5px">
-        <Box marginRight="20px" color="#666">${date}</Box>
-        <Box>
-          <B>${title+':'}</B> ${text}
+      return html`
+        <Box
+          display="flex"
+          padding="10px"
+          position="relative"
+          marginBottom="10px"
+          backgroundColor="#1f1f1f"
+          borderRadius="5px"
+        >
+          <Box marginRight="20px" color="#666">${date}</Box>
+          <Box> <B>${title + ':'}</B> ${text} </Box>
         </Box>
-      </Box>`;
+      `;
     }
 
     if (newText.startsWith('entrypoint size limit:')) {
       console.log(newText.split('Entrypoints:')[1]);
 
-      return htm`<Box display="flex">
-        <Box marginRight="20px" color="#666">${date}</Box>
-        <Box>
-          ${newText}
+      return html`
+        <Box display="flex">
+          <Box marginRight="20px" color="#666">${date}</Box>
+          <Box>
+            ${newText}
+          </Box>
         </Box>
-      </Box>`;
+      `;
     }
 
     if (newText.match(/Creating lambda for page: \"(.*)\"/)) {
       const [text, file] = newText.match(/Creating lambda for page: \"(.*)\"/);
-      return htm`<Box display="flex">
-        <Box marginRight="20px" color="#666">${date}</Box>
-        <Box>
-          ${getBackgroundImageBox(
-            ROOT_URL + '/lambda.svg',
-            20,
-            15,
-            'inline-block'
-          )}
-          <Box display="inline-block">Creating lambda for page: <B>${file}</B></Box>
+      return html`
+        <Box display="flex">
+          <Box marginRight="20px" color="#666">${date}</Box>
+          <Box>
+            ${getBackgroundImageBox(
+              ROOT_URL + '/lambda.svg',
+              20,
+              15,
+              'inline-block'
+            )}
+            <Box display="inline-block"
+              >Creating lambda for page: <B>${file}</B></Box
+            >
+          </Box>
         </Box>
-      </Box>`;
+      `;
     }
 
     if (newText.match(/Created lambda for page: \"(.*)\"/)) {
       const [text, file] = newText.match(/Created lambda for page: \"(.*)\"/);
-      return htm`<Box display="flex">
-        <Box marginRight="20px" color="#666">${date}</Box>
-        <Box>
-          ${getBackgroundImageBox(
-            ROOT_URL + '/lambda.svg',
-            20,
-            15,
-            'inline-block'
-          )}
-          <Box display="inline-block">Created lambda for page: <B>${file}</B></Box>
+      return html`
+        <Box display="flex">
+          <Box marginRight="20px" color="#666">${date}</Box>
+          <Box>
+            ${getBackgroundImageBox(
+              ROOT_URL + '/lambda.svg',
+              20,
+              15,
+              'inline-block'
+            )}
+            <Box display="inline-block"
+              >Created lambda for page: <B>${file}</B></Box
+            >
+          </Box>
         </Box>
-      </Box>`;
+      `;
     }
 
     if (newText.includes('No license field')) {
       return colorStartWord(
         newText,
+        date,
         'https://docs.npmjs.com/files/package.json#license'
       );
     }
@@ -192,6 +242,7 @@ module.exports = {
     if (newText.includes('No repository field')) {
       return colorStartWord(
         newText,
+        date,
         'https://docs.npmjs.com/files/package.json#repository'
       );
     }
@@ -199,6 +250,7 @@ module.exports = {
     if (newText.includes('No lockfile found')) {
       return colorStartWord(
         newText,
+        date,
         'https://yarnpkg.com/lang/en/docs/yarn-lock/'
       );
     }
@@ -208,17 +260,19 @@ module.exports = {
 
       const d = JSON.parse(JSON.stringify(pkgJson, undefined, 2));
 
-      return htm`<Box display="flex">
-      <Box marginRight="20px" color="#666">${date}</Box>
-      <Box>
-        <Box>normalized package.json result:</Box>
-        <Code>${d}</Code>
-      </Box>
-    </Box>`;
+      return html`
+        <Box display="flex">
+          <Box marginRight="20px" color="#666">${date}</Box>
+          <Box>
+            <Box>normalized package.json result:</Box>
+            <Code>${d}</Code>
+          </Box>
+        </Box>
+      `;
     }
 
     if (trimmedText.toLowerCase().startsWith('info')) {
-      return colorStartWord(newText);
+      return colorStartWord(newText, date);
     }
     if (trimmedText.startsWith('MODE:')) {
       return colorStartWord(newText);
@@ -227,23 +281,30 @@ module.exports = {
       trimmedText.toLowerCase().startsWith('warning') ||
       trimmedText.startsWith('WARNING:')
     ) {
-      return colorStartWord(newText);
+      return colorStartWord(newText, date);
     }
     if (
       trimmedText.trim().startsWith('success') ||
       trimmedText.toLowerCase().startsWith('done')
     ) {
-      return colorStartWord(newText);
+      return colorStartWord(newText, date);
     }
 
     newText = newText.split('\n');
-    return htm`<Box display="flex">
-      <Box marginRight="20px" color="#666">${date}</Box>
-      <Box>${
-        newText.length > 1 ? newText.map(te => htm`${te}<BR />`) : text
-      }</Box>
-    </Box>
-
+    return html`
+      <Box display="flex">
+        <Box marginRight="20px" color="#666">${date}</Box>
+        <Box
+          >${newText.length > 1
+            ? newText.map(
+                te =>
+                  html`
+                    ${te}<BR />
+                  `
+              )
+            : newText}</Box
+        >
+      </Box>
     `;
   },
   isImage(file) {
